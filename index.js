@@ -22,14 +22,11 @@ class King extends Citizen {
         // look at the top __ number of citizens 
         // extrapolate a good direction and good step size from those steps
         // then use that as a baseline for a normal-random numbers in that direction
-    // allow forking by choosing successor kings
-        // pick the best overall citizen
-        // then continually pick new kings, and measure the distance from all already-chosen kings
 
 
 let kingsOfTheHills
 kingsOfTheHills = {
-    fitnessFunction: (a,b,c) => a*b - b*c + c*a*b,
+    fitnessFunction: (a,b,c) => Math.abs(a*b - b*c + c*a*b),
     numberOfCitizens: 100,
     deviationVector: [ 1, 1, 1 ], // one number for each argument in the fitness function
     generateInitialKings: () => {
@@ -57,14 +54,13 @@ kingsOfTheHills = {
         }
         return distance
     },
-    relativeFitnessFunction: (citizen, kings, currentKing) => {
+    relativeFitnessFunction: (citizen, kings) => {
         let distances = []
         for (let eachOtherKing of kings) {
-            if (eachOtherKing != currentKing) {
-                distances.push(kingsOfTheHills.distanceFunction(citizen, eachOtherKing))
-            }
+            distances.push(kingsOfTheHills.distanceFunction(citizen, eachOtherKing))
         }
-        return citizen.fitness + Math.min(...distances)
+        let distanceToNearestKing = Math.min(...distances) 
+        return citizen.fitness + distanceToNearestKing * distanceToNearestKing
     },
     citizenAllocation: (kings) => {
         let allFitness = 0
@@ -85,10 +81,8 @@ kingsOfTheHills = {
     getFitness: (kings) => {
         // change this to be done in parallel since it is almost always the bottleneck of the whole program
         for (let eachKing of kings) {
-            eachKing.relativeFitness = kingsOfTheHills.relativeFitnessFunction(eachKing, kings, eachKing)
             for (let eachCitizen of eachKing.citizens) {
                 eachCitizen.fitness = kingsOfTheHills.fitnessFunction(...eachCitizen.features)
-                eachCitizen.relativeFitness = kingsOfTheHills.relativeFitnessFunction(eachCitizen, kings, eachKing)
             }
         }
     },
@@ -103,16 +97,31 @@ kingsOfTheHills = {
     },
     pickNewKings: (kings) => {
         let newKings = []
+        let allCitizens = [...kings]
         for (let eachKing of kings) {
-            let newKing = new King
-            newKing.fromCitizen(eachKing)
-            // pick the best citizen
-            for (let eachCitizen of eachKing.citizens) {
+            allCitizens = allCitizens.concat(eachKing.citizens)
+        }
+        allCitizens = new Set(allCitizens)
+        // initilize the kings with the emporerKing
+        let emporerKing = { fitness: -Infinity }
+        for (let eachCitizen of allCitizens) {
+            if (eachCitizen.fitness > emporerKing.fitness) {
+                emporerKing = eachCitizen
+            }
+        }
+        newKings.push(emporerKing)
+        allCitizens.delete(emporerKing)
+        // now continually find the next best kings
+        while (newKings.length < kings.length) {
+            let newKing = { relativeFitness: -Infinity }
+            for (let eachCitizen of allCitizens) {
+                eachCitizen.relativeFitness = kingsOfTheHills.relativeFitnessFunction(eachCitizen, newKings)
                 if (eachCitizen.relativeFitness > newKing.relativeFitness) {
-                    newKing.fromCitizen(eachCitizen)
+                    newKing = eachCitizen
                 }
             }
             newKings.push(newKing)
+            allCitizens.delete(newKing)
         }
         return newKings
     },
