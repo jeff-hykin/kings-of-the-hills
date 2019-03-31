@@ -1,0 +1,9 @@
+// instead of complete randomness
+    // look at the top __ number of citizens 
+    // extrapolate a good direction and good step size from those steps
+    // then use that as a baseline for a normal-random numbers in that direction
+    // change the amount of standard deviation based on the rate of improvement in the last few steps
+        // if improvements/lack of improvments are consistant for several steps for a kingdom, then increase the step size
+        // if improvements are radically changing for the last several steps, then decrease the step size
+// change the distance reward to be equivlent to being outside of the range of the existing kingdoms (the gaussian normal space theyre in)
+// consider making the number of kings dynamic
